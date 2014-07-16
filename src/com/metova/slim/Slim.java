@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import com.metova.slim.annotation.Callback;
 import com.metova.slim.annotation.Extra;
-import com.metova.slim.internal.AnnotationUtil;
 import com.metova.slim.internal.BundleChecker;
 
 import java.lang.reflect.Array;
@@ -14,8 +13,8 @@ import java.lang.reflect.Field;
 public class Slim {
 
     public static void inject(Fragment fragment) {
-        AnnotationUtil.injectCallbacks(fragment);
-        AnnotationUtil.injectExtras(fragment.getArguments(), fragment);
+        injectCallbacks(fragment);
+        injectExtras(fragment.getArguments(), fragment);
     }
 
     public static void injectExtras(Bundle extras, Object obj) {
