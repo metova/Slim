@@ -6,10 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-public @interface Extra {
+@Target(ElementType.TYPE)
+public @interface Layout {
 
-    String key();
-
-    boolean optional() default false;
+    int value();
 }

@@ -1,10 +1,14 @@
 package com.metova.slim;
 
-import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import com.metova.slim.annotation.Callback;
 import com.metova.slim.annotation.Extra;
+import com.metova.slim.annotation.Layout;
 import com.metova.slim.internal.BundleChecker;
 
 import java.lang.reflect.Array;
@@ -23,7 +27,7 @@ public class Slim {
         for (Field field : fields) {
             if (field.isAnnotationPresent(Extra.class)) {
                 Extra annotation = field.getAnnotation(Extra.class);
-                String key = annotation.key();
+                String key = annotation.value();
                 Object value = BundleChecker.getExtra(key, extras);
 
                 if (value == null) {
@@ -65,22 +69,35 @@ public class Slim {
         injectCallbacks(fragment, fragment.getActivity());
     }
 
-    public static void injectCallbacks(Fragment fragment, Activity activity) {
-        Field[] fields = ((Object) fragment).getClass().getDeclaredFields();
+    public static void injectCallbacks(Object child, Object parent) {
+        Field[] fields = ((Object) child).getClass().getDeclaredFields();
         for (Field field : fields) {
             if (field.isAnnotationPresent(Callback.class)) {
                 try {
                     field.setAccessible(true);
-                    field.set(fragment, activity);
+                    field.set(child, parent);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 } catch (IllegalArgumentException e) {
                     throw new ClassCastException(
-                            activity.getClass().getSimpleName() + " must implement " + field
+                            parent.getClass().getSimpleName() + " must implement " + field
                                     .getType().getSimpleName()
                     );
                 }
             }
         }
+    }
+
+    public static View createLayout(Context context, Object obj) {
+        return createLayout(context, obj, null);
+    }
+
+    public static View createLayout(Context context, Object obj, ViewGroup parent) {
+        Layout layout = obj.getClass().getAnnotation(Layout.class);
+        if (layout == null) {
+            return null;
+        }
+
+        return LayoutInflater.from(context).inflate(layout.value(), parent, false);
     }
 }

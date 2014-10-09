@@ -2,9 +2,9 @@ package com.metova.slim;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.support.v4.app.ListFragment;
+import android.support.v4.app.DialogFragment;
 
-public class SlimListFragment extends ListFragment {
+public class SlimDialogFragment extends DialogFragment {
 
     @Override
     public void onAttach(Activity activity) {

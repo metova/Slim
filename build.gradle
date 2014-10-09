@@ -1,0 +1,56 @@
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+
+tasks.withType(Test) {
+    scanForTestClasses = false;
+    include "**/*Test.class"
+}
+
+String androidDir = System.getenv("ANDROID_HOME")
+
+repositories {
+    mavenCentral()
+    maven {
+        url androidDir + '/extras/android/m2repository'
+    }
+}
+
+dependencies {
+    compile files(androidDir + '/platforms/android-19/android.jar')
+    compile 'com.android.support:support-v4:19.+'
+
+    testCompile 'junit:junit:4.11'
+}
+
+group = 'com.metova'
+version = '1.1'
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            from components.java
+        }
+
+        mavenJava(MavenPublication) {
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url 'http://repo.metova.com/nexus/content/repositories/metova-external'
+            credentials {
+                username mavenUser
+                password mavenPassword
+            }
+        }
+    }
+}
