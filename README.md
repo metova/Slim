@@ -4,10 +4,13 @@ Slim
 Introduction
 ------------
 Slim is an annotation library whose main purpose is to remove common boilerplate associated with Android development.
-There are currently two features:
 
+Features
+--------
 + Assignment of 'extras' passed through to an Activity or Fragment
-+ Casting of an activity to an interface callback within a Fragment
++ Casting of an Activity to an interface callback within a Fragment
++ Layout declaration at the top of the class
++ Base class implementations that remove having to call through to the `Slim` methods
 
 Usage
 -----
@@ -20,7 +23,7 @@ public class MyActivity extends Activity {
 
     public static final String EXTRA_DATA = "data";
     
-    @Extra(key = EXTRA_DATA)
+    @Extra(EXTRA_DATA)
     Data mData;
     
     public void onCreate(Bundle savedInstanceState) {
@@ -33,7 +36,7 @@ public class MyActivity extends Activity {
 An exception will be thrown by default if an extra is not found. You can mark an extra as optional by setting `optional = true` inside the annotation parameters. This will also allow you to set a default value:
 
 ```java
-@Extra(key = EXTRA_DATA, optional = true)
+@Extra(value = EXTRA_DATA, optional = true)
 Data mData = Data.newInstance();
 ```
 
@@ -61,7 +64,42 @@ public class MyFragment extends Fragment {
 
 This will cast the `Activity` to your callback for you automatically. If the `Activity` does not implement the `Fragment` interface, a `ClassCastException` will be thrown with an appropriate error message in the logs.
 
+@Layout
+-------
+```java
+
+@Layout(R.layout.fragment_main)
+public class MyFragment extends Fragment {
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        return Slim.createLayout(getActivity(), this, container);
+    }
+}
+```
+
+This will work anywhere you have access to a `Context`.
+
+```java
+
+@Layout(R.layout.list_item)
+public class MyAdapter extends BaseAdapter {
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        View view = convertView;
+        if(view == null) {
+            view = Slim.createLayout(parent.getContext(), this, parent);
+        }
+        
+        // ...
+        
+        return view;
+    }
+}
+```
+
 Other
 -----
 
-Alternatively, `SlimActivity`, `SlimFragment`, and `SlimListFragment` is provided as base classes that will call the `Slim` code in the correct places.
+Alternatively, `SlimActivity`, `SlimFragment`, `SlimListFragment`, and `SlimDialogFragment` are provided as base classes that will call the `Slim` methods in the correct places.
