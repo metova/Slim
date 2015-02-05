@@ -10,20 +10,17 @@ String androidDir = System.getenv("ANDROID_HOME")
 
 repositories {
     mavenCentral()
-    maven {
-        url androidDir + '/extras/android/m2repository'
-    }
 }
 
 dependencies {
-    compile files(androidDir + '/platforms/android-19/android.jar')
-    compile 'com.android.support:support-v4:19.+'
+    compile files(androidDir + '/platforms/android-21/android.jar')
+    compile fileTree(dir: 'libs', include: '*.jar')
 
     testCompile 'junit:junit:4.11'
 }
 
 group = 'com.metova'
-version = '1.1'
+version = '1.2-beta1'
 
 task sourceJar(type: Jar) {
     from sourceSets.main.allJava

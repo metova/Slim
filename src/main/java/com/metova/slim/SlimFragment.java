@@ -25,4 +25,10 @@ public abstract class SlimFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return Slim.createLayout(getActivity(), this, container);
     }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Slim.injectCallbacksMethods(this);
+    }
 }

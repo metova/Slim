@@ -6,6 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-public @interface Callback {
+@Target(ElementType.METHOD)
+public @interface CallbackClick {
+
+    int value();
 }

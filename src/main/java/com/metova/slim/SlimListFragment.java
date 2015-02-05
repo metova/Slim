@@ -26,4 +26,10 @@ public class SlimListFragment extends ListFragment {
         View layout = Slim.createLayout(getActivity(), this, container);
         return layout != null ? layout : super.onCreateView(inflater, container, savedInstanceState);
     }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Slim.injectCallbacksMethods(this);
+    }
 }
