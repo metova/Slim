@@ -9,6 +9,7 @@ Features
 --------
 + Assignment of 'extras' passed through to an Activity or Fragment
 + Casting of an Activity to an interface callback within a Fragment
++ Easily call through to an Activity through an interface callback
 + Layout declaration at the top of the class
 + Base class implementations that remove having to call through to the `Slim` methods
 
@@ -63,6 +64,35 @@ public class MyFragment extends Fragment {
 ```
 
 This will cast the `Activity` to your callback for you automatically. If the `Activity` does not implement the `Fragment` interface, a `ClassCastException` will be thrown with an appropriate error message in the logs.
+
+@CallbackClick
+--------------
+```java
+
+public class MyFragment extends Fragment {
+    
+    @Callback
+    MyCallback mMyCallback;
+        
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        Slim.injectCallbacks(this);
+    }
+    
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Slim.injectCallbacksMethods(this);
+    }
+        
+    public interface MyCallback {
+        @CallbackClick(R.id.do_stuff)
+        public void doStuff();
+    }
+}
+```
+
+This will automatically assign a click listener from a View represented by its id to your callback's methods. Due to limitations with Java annotations, this will only work with zero argument methods.
+
 
 @Layout
 -------
