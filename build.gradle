@@ -1,6 +1,9 @@
 apply plugin: 'java'
 apply plugin: 'maven-publish'
 
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
 tasks.withType(Test) {
     scanForTestClasses = false;
     include "**/*Test.class"
@@ -20,7 +23,7 @@ dependencies {
 }
 
 group = 'com.metova'
-version = '1.2-beta1'
+version = '1.2-beta2'
 
 task sourceJar(type: Jar) {
     from sourceSets.main.allJava

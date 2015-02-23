@@ -16,17 +16,36 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Slim {
 
     /**
-     * Shorthand to inject both callbacks and extras within a Fragment. Call during or after <code>onCreate</code>.
+     * Shorthand to inject callbacks and extras within a Fragment. Call during or after <code>onCreate</code>.
      *
      * @param fragment the Fragment to inject
      */
     public static void inject(Fragment fragment) {
         injectCallbacks(fragment);
         injectExtras(fragment.getArguments(), fragment);
+    }
+
+    private static Field[] getNonAndroidFields(Object obj) {
+        Class<?> objClass = obj.getClass();
+        Field[] fields = objClass.getDeclaredFields();
+
+        Class<?> superClass = objClass;
+        while ((superClass = superClass.getSuperclass()) != null) {
+            String packageName = superClass.getPackage().getName();
+            if (packageName.startsWith("com.android") || packageName.startsWith("android.app")) {
+                break;
+            }
+
+            fields = concatenate(fields, superClass.getDeclaredFields());
+        }
+
+        return fields;
     }
 
     /**
@@ -39,7 +58,7 @@ public class Slim {
      * @param obj    the class with the annotated extras
      */
     public static void injectExtras(Bundle extras, Object obj) {
-        Field[] fields = obj.getClass().getDeclaredFields();
+        Field[] fields = getNonAndroidFields(obj);
         for (Field field : fields) {
             if (field.isAnnotationPresent(Extra.class)) {
                 Extra annotation = field.getAnnotation(Extra.class);
@@ -97,7 +116,7 @@ public class Slim {
      * @param parent the Object implementing the callback interface
      */
     public static void injectCallbacks(Object child, Object parent) {
-        Field[] fields = child.getClass().getDeclaredFields();
+        Field[] fields = getNonAndroidFields(child);
         for (Field field : fields) {
             if (field.isAnnotationPresent(Callback.class)) {
                 try {
@@ -123,7 +142,7 @@ public class Slim {
      * @param fragment the Fragment to inject
      */
     public static void injectCallbacksMethods(Fragment fragment) {
-        Field[] fields = fragment.getClass().getDeclaredFields();
+        Field[] fields = getNonAndroidFields(fragment);
         for (Field field : fields) {
             if (field.isAnnotationPresent(Callback.class)) {
                 try {
@@ -143,7 +162,7 @@ public class Slim {
                 if (method.getParameterTypes().length > 0) {
                     throw new SlimException("Methods annotated with CallbackClick must have zero parameters.");
                 }
-                
+
                 CallbackClick callbackClick = method.getAnnotation(CallbackClick.class);
                 int id = callbackClick.value();
                 assignClickListener(fragment, id, callbackObject, method);
@@ -171,6 +190,17 @@ public class Slim {
         });
     }
 
+    private static Field[] concatenate(Field[] a, Field[] b) {
+        int aLength = a.length;
+        int bLength = b.length;
+
+        Field[] c = new Field[aLength + bLength];
+        System.arraycopy(a, 0, c, 0, aLength);
+        System.arraycopy(b, 0, c, aLength, bLength);
+
+        return c;
+    }
+
     /**
      * Helper method to create a layout within an Object annotated with the <code>@Layout</code> annotation.
      *
@@ -194,9 +224,34 @@ public class Slim {
     public static View createLayout(Context context, Object obj, ViewGroup parent) {
         Layout layout = obj.getClass().getAnnotation(Layout.class);
         if (layout == null) {
-            return null;
+            Class<?>[] superClasses = getNonAndroidSuperClasses(obj);
+            for (Class<?> superClass : superClasses) {
+                layout = superClass.getAnnotation(Layout.class);
+                if (layout != null) {
+                    break;
+                }
+            }
+
+            if (layout == null) {
+                return null;
+            }
         }
 
         return LayoutInflater.from(context).inflate(layout.value(), parent, false);
+    }
+
+    private static Class<?>[] getNonAndroidSuperClasses(Object obj) {
+        List<Class<?>> superClassList = new ArrayList<>();
+        Class<?> superClass = obj.getClass();
+        while ((superClass = superClass.getSuperclass()) != null) {
+            String packageName = superClass.getPackage().getName();
+            if (packageName.startsWith("com.android") || packageName.startsWith("android.app")) {
+                break;
+            }
+
+            superClassList.add(superClass);
+        }
+
+        return superClassList.toArray(new Class<?>[superClassList.size()]);
     }
 }
