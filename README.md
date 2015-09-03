@@ -14,6 +14,17 @@ Features
 + Base class implementations that remove having to call through to the `Slim` methods
 + Pairs well with other Annotation-based libraries, such as [ButterKnife](https://github.com/JakeWharton/butterknife)
 
+Download
+-----
+
+To include Slim into your project simply add it to your `build.gradle` dependencies. 
+
+```
+dependencies {
+    compile 'com.metova:slim:1.0'
+}
+```
+
 Usage
 -----
 
