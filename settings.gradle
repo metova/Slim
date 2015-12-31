@@ -1,1 +1,1 @@
-rootProject.name = 'slim'
+include ':library'

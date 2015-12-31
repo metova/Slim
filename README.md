@@ -1,6 +1,8 @@
 Slim
 ====
 
+![Logo](website/static/logo.png)
+
 Introduction
 ------------
 Slim is an annotation library whose main purpose is to remove common boilerplate associated with Android development.
@@ -24,10 +26,10 @@ Usage
 public class MyActivity extends Activity {
 
     public static final String EXTRA_DATA = "data";
-    
+
     @Extra(EXTRA_DATA)
     Data mData;
-    
+
     public void onCreate(Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
       Slim.injectExtras(getIntent().getExtras(), this);
@@ -49,15 +51,15 @@ Data mData = Data.newInstance();
 ```java
 
 public class MyFragment extends Fragment {
-    
+
     @Callback
     MyCallback mMyCallback;
-        
+
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         Slim.injectCallback(this);
     }
-        
+
     public interface MyCallback {
         public void doStuff();
     }
@@ -71,20 +73,20 @@ This will cast the `Activity` to your callback for you automatically. If the `Ac
 ```java
 
 public class MyFragment extends Fragment {
-    
+
     @Callback
     MyCallback mMyCallback;
-        
+
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         Slim.injectCallbacks(this);
     }
-    
+
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         Slim.injectCallbacksMethods(this);
     }
-        
+
     public interface MyCallback {
         @CallbackClick(R.id.do_stuff)
         public void doStuff();
@@ -122,9 +124,9 @@ public class MyAdapter extends BaseAdapter {
         if(view == null) {
             view = Slim.createLayout(parent.getContext(), this, parent);
         }
-        
+
         // ...
-        
+
         return view;
     }
 }
