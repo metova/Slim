@@ -1,16 +1,17 @@
 package com.metova.slim;
 
+import com.metova.slim.annotation.Callback;
+import com.metova.slim.annotation.CallbackClick;
+import com.metova.slim.annotation.Extra;
+import com.metova.slim.annotation.Layout;
+import com.metova.slim.internal.BundleChecker;
+
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import com.metova.slim.annotation.Callback;
-import com.metova.slim.annotation.CallbackClick;
-import com.metova.slim.annotation.Extra;
-import com.metova.slim.annotation.Layout;
-import com.metova.slim.internal.BundleChecker;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
