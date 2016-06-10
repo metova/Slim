@@ -19,11 +19,11 @@ Features
 Download
 -----
 
-To include Slim into your project simply add it to your `build.gradle` dependencies. 
+To include Slim into your project, add it to your `build.gradle` dependencies. 
 
 ```
 dependencies {
-    compile 'com.metova:slim:1.0'
+    compile 'com.metova:slim:1.2'
 }
 ```
 
