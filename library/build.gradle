@@ -6,24 +6,18 @@ version = '1.2'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    buildToolsVersion "23.0.3"
 
     defaultConfig {
         minSdkVersion 15
-        targetSdkVersion 23
-        versionName version
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
+
+        consumerProguardFiles 'proguard-rules.pro'
     }
 }
 
 dependencies {
-    compile project(':library-annotations')
-    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile project(':library-common')
+
     testCompile 'junit:junit:4.12'
 }
 

@@ -1,1 +1,1 @@
-include ':library', ':library-compiler', ':library-annotations'
+include ':library', ':library-common', ':library-compiler', ':sample'
