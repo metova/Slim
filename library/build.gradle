@@ -16,7 +16,7 @@ android {
 }
 
 dependencies {
-    compile project(':library-common')
+    compile project(':library-annotation')
 
     testCompile 'junit:junit:4.12'
 }

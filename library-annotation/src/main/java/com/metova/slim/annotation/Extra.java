@@ -1,4 +1,4 @@
-package com.metova.slim.common.annotation;
+package com.metova.slim.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

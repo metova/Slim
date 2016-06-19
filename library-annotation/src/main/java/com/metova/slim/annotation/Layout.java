@@ -1,4 +1,4 @@
-package com.metova.slim.common.annotation;
+package com.metova.slim.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -6,8 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface CallbackClick {
+@Target(ElementType.TYPE)
+public @interface Layout {
 
     int value();
 }

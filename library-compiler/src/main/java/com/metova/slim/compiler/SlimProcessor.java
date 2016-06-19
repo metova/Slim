@@ -3,23 +3,19 @@ package com.metova.slim.compiler;
 import com.google.auto.common.SuperficialValidation;
 import com.google.auto.service.AutoService;
 
-import com.metova.slim.common.annotation.Callback;
-import com.metova.slim.common.annotation.CallbackClick;
-import com.metova.slim.common.annotation.Extra;
-import com.metova.slim.common.annotation.Layout;
-import com.metova.slim.common.provider.LayoutProvider;
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeName;
-import com.squareup.javapoet.TypeSpec;
+import com.metova.slim.annotation.Extra;
+import com.metova.slim.annotation.Layout;
+import com.metova.slim.binder.ExtraBinder;
+import com.metova.slim.binder.LayoutIdProvider;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -29,13 +25,10 @@ import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.ElementKind.INTERFACE;
-import static javax.lang.model.element.ElementKind.METHOD;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 @AutoService(Processor.class)
@@ -44,12 +37,11 @@ public class SlimProcessor extends AbstractProcessor {
     private static final String BINDING_CLASS_SUFFIX = "$$SlimBinder";
 
     private Filer mFiler;
+    private Map<Class<? extends Annotation>, BinderMetadata> mBinderMetadataMap = new HashMap<>();
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
         return arrayToSet(new String[]{
-                Callback.class.getCanonicalName(),
-                CallbackClick.class.getCanonicalName(),
                 Extra.class.getCanonicalName(),
                 Layout.class.getCanonicalName()
         });
@@ -64,67 +56,71 @@ public class SlimProcessor extends AbstractProcessor {
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         mFiler = processingEnv.getFiler();
+
+        addBinderAssociation(Layout.class, LayoutIdProvider.class);
+        addBinderAssociation(Extra.class, ExtraBinder.class);
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> elements, RoundEnvironment env) {
-        for (Element element : env.getElementsAnnotatedWith(Layout.class)) {
-            if (!SuperficialValidation.validateElement(element)) {
-                continue;
-            }
-
+        List<BinderClassBuilder> builders = createBinderClassBuilders(env);
+        for (BinderClassBuilder builder : builders) {
             try {
-                List<TypeName> interfaces = new ArrayList<>();
-                List<MethodSpec> methods = new ArrayList<>();
-
-                interfaces.add(TypeName.get(LayoutProvider.class));
-                methods.add(parseLayout(element));
-
-                String packageName = getPackageName(element);
-                String className = getEnclosingClassName(element);
-                createJavaFile(packageName, className + BINDING_CLASS_SUFFIX, interfaces, methods).writeTo(mFiler);
+                builder.buildJavaFile().writeTo(mFiler);
             } catch (IOException e) {
-                error(element, "Unable to write binder class for type %s: %s", element.getSimpleName().toString(), e.getMessage());
+                error("Unable to write binder class %s: %s", builder.getCanonicalName(), e.getMessage());
             }
         }
 
         return true;
     }
 
-    private MethodSpec parseLayout(Element element) throws IOException {
-        Element methodElement = null;
-        TypeElement providerElement = processingEnv.getElementUtils().getTypeElement(LayoutProvider.class.getCanonicalName());
-        for (Element enclosedElement : providerElement.getEnclosedElements()) {
-            if (enclosedElement.getKind() == METHOD && enclosedElement.getSimpleName().contentEquals("getLayoutId")) {
-                methodElement = enclosedElement;
-                break;
-            }
-        }
-
-        if (methodElement == null) {
-            throw new IOException("Method missing from interface");
-        }
-
-        int id = element.getAnnotation(Layout.class).value();
-        return MethodSpec.overriding((ExecutableElement) methodElement)
-                .addCode(CodeBlock.of("return $L;\n", id))
-                .build();
+    private void addBinderAssociation(Class<? extends Annotation> annotationCls, Class<?> binderCls) {
+        TypeElement binderElement = processingEnv.getElementUtils().getTypeElement(binderCls.getCanonicalName());
+        mBinderMetadataMap.put(annotationCls, new BinderMetadata(binderCls, binderElement));
     }
 
-    private JavaFile createJavaFile(String packageName, String className, Iterable<TypeName> interfaces, Iterable<MethodSpec> methods) {
-        TypeSpec.Builder builder = TypeSpec.classBuilder(className)
-                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addSuperinterfaces(interfaces)
-                .addMethods(methods);
+    private List<BinderClassBuilder> createBinderClassBuilders(RoundEnvironment env) {
+        Map<Element, BinderClassBuilder> builderMap = new HashMap<>();
+        for (Element element : env.getElementsAnnotatedWith(Layout.class)) {
+            if (!SuperficialValidation.validateElement(element)) {
+                continue;
+            }
 
-        return JavaFile.builder(packageName, builder.build())
-                .addFileComment("Generated by Slim. Do not modify!\n")
-                .addFileComment(new Date(System.currentTimeMillis()).toString())
-                .build();
+            Layout annotation = element.getAnnotation(Layout.class);
+            int id = annotation.value();
+
+            BinderClassBuilder builder = getOrCreateBinderClassBuilder(builderMap, element);
+            BinderMetadata metadata = mBinderMetadataMap.get(Layout.class);
+            builder.writeLayout(metadata.getBinderClass(), metadata.getMethodElement(), id);
+        }
+
+        return new ArrayList<>(builderMap.values());
+    }
+
+    private BinderClassBuilder getOrCreateBinderClassBuilder(Map<Element, BinderClassBuilder> builderMap, Element element) {
+        element = getEnclosingElement(element);
+        BinderClassBuilder builder;
+        if (builderMap.containsKey(element)) {
+            builder = builderMap.get(element);
+        } else {
+            builder = new BinderClassBuilder(getPackageName(element), getClassName(element));
+            builderMap.put(element, builder);
+        }
+
+        return builder;
+    }
+
+    private String getClassName(Element type) {
+        return type.getSimpleName().toString() + BINDING_CLASS_SUFFIX;
     }
 
     private String getPackageName(Element type) {
         return processingEnv.getElementUtils().getPackageOf(type).getQualifiedName().toString();
+    }
+
+    private void error(String message, Object... args) {
+        processingEnv.getMessager().printMessage(ERROR, String.format(message, args));
     }
 
     private void error(Element element, String message, Object... args) {
@@ -140,10 +136,10 @@ public class SlimProcessor extends AbstractProcessor {
         return set;
     }
 
-    private static String getEnclosingClassName(Element type) {
+    private static Element getEnclosingElement(Element type) {
         if (type.getKind() != CLASS && type.getKind() != INTERFACE) {
             type = type.getEnclosingElement();
         }
-        return type.getSimpleName().toString();
+        return type;
     }
 }

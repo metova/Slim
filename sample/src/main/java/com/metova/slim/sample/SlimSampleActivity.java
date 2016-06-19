@@ -1,7 +1,7 @@
 package com.metova.slim.sample;
 
 import com.metova.slim.Slim;
-import com.metova.slim.common.annotation.Layout;
+import com.metova.slim.annotation.Layout;
 
 import android.app.Activity;
 import android.os.Bundle;
