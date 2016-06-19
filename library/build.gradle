@@ -5,8 +5,8 @@ group = 'com.metova'
 version = '1.2'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.3"
+    compileSdkVersion 24
+    buildToolsVersion "24.0.0"
 
     defaultConfig {
         minSdkVersion 15
@@ -17,7 +17,7 @@ android {
 
 dependencies {
     compile project(':library-annotation')
-
+    compile 'com.android.support:appcompat-v7:24.0.0'
     testCompile 'junit:junit:4.12'
 }
 
