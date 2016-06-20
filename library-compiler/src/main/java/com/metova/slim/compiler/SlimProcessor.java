@@ -5,11 +5,9 @@ import com.google.auto.service.AutoService;
 
 import com.metova.slim.annotation.Extra;
 import com.metova.slim.annotation.Layout;
-import com.metova.slim.binder.ExtraBinder;
-import com.metova.slim.binder.LayoutIdProvider;
+import com.metova.slim.binder.SlimBinder;
 
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,7 +35,7 @@ public class SlimProcessor extends AbstractProcessor {
     private static final String BINDING_CLASS_SUFFIX = "$$SlimBinder";
 
     private Filer mFiler;
-    private Map<Class<? extends Annotation>, BinderMetadata> mBinderMetadataMap = new HashMap<>();
+    private Element mIBinderElement;
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
@@ -56,9 +54,7 @@ public class SlimProcessor extends AbstractProcessor {
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         mFiler = processingEnv.getFiler();
-
-        addBinderAssociation(Layout.class, LayoutIdProvider.class);
-        addBinderAssociation(Extra.class, ExtraBinder.class);
+        mIBinderElement = processingEnv.getElementUtils().getTypeElement(SlimBinder.class.getCanonicalName());
     }
 
     @Override
@@ -66,18 +62,13 @@ public class SlimProcessor extends AbstractProcessor {
         List<BinderClassBuilder> builders = createBinderClassBuilders(env);
         for (BinderClassBuilder builder : builders) {
             try {
-                builder.buildJavaFile().writeTo(mFiler);
+                builder.buildJavaFile(BINDING_CLASS_SUFFIX).writeTo(mFiler);
             } catch (IOException e) {
                 error("Unable to write binder class %s: %s", builder.getCanonicalName(), e.getMessage());
             }
         }
 
         return true;
-    }
-
-    private void addBinderAssociation(Class<? extends Annotation> annotationCls, Class<?> binderCls) {
-        TypeElement binderElement = processingEnv.getElementUtils().getTypeElement(binderCls.getCanonicalName());
-        mBinderMetadataMap.put(annotationCls, new BinderMetadata(binderCls, binderElement));
     }
 
     private List<BinderClassBuilder> createBinderClassBuilders(RoundEnvironment env) {
@@ -91,28 +82,36 @@ public class SlimProcessor extends AbstractProcessor {
             int id = annotation.value();
 
             BinderClassBuilder builder = getOrCreateBinderClassBuilder(builderMap, element);
-            BinderMetadata metadata = mBinderMetadataMap.get(Layout.class);
-            builder.writeLayout(metadata.getBinderClass(), metadata.getMethodElement(), id);
+            builder.writeLayout(id);
+        }
+
+        for (Element element : env.getElementsAnnotatedWith(Extra.class)) {
+            if (!SuperficialValidation.validateElement(element)) {
+                continue;
+            }
+
+            Extra extra = element.getAnnotation(Extra.class);
+            String key = extra.value();
+            boolean optional = extra.optional();
+
+            BinderClassBuilder builder = getOrCreateBinderClassBuilder(builderMap, element);
+            builder.writeExtra(element.getSimpleName().toString(), key);
         }
 
         return new ArrayList<>(builderMap.values());
     }
 
     private BinderClassBuilder getOrCreateBinderClassBuilder(Map<Element, BinderClassBuilder> builderMap, Element element) {
-        element = getEnclosingElement(element);
+        TypeElement typeElement = getEnclosingElement(element);
         BinderClassBuilder builder;
-        if (builderMap.containsKey(element)) {
-            builder = builderMap.get(element);
+        if (builderMap.containsKey(typeElement)) {
+            builder = builderMap.get(typeElement);
         } else {
-            builder = new BinderClassBuilder(getPackageName(element), getClassName(element));
-            builderMap.put(element, builder);
+            builder = new BinderClassBuilder(getPackageName(element), typeElement, mIBinderElement);
+            builderMap.put(typeElement, builder);
         }
 
         return builder;
-    }
-
-    private String getClassName(Element type) {
-        return type.getSimpleName().toString() + BINDING_CLASS_SUFFIX;
     }
 
     private String getPackageName(Element type) {
@@ -136,10 +135,10 @@ public class SlimProcessor extends AbstractProcessor {
         return set;
     }
 
-    private static Element getEnclosingElement(Element type) {
+    private static TypeElement getEnclosingElement(Element type) {
         if (type.getKind() != CLASS && type.getKind() != INTERFACE) {
             type = type.getEnclosingElement();
         }
-        return type;
+        return (TypeElement) type;
     }
 }
