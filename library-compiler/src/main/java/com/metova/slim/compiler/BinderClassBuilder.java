@@ -1,15 +1,15 @@
 package com.metova.slim.compiler;
 
+import com.metova.slim.binder.LayoutBinder;
+import com.metova.slim.provider.ExtraProvider;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.util.Date;
+import java.util.HashSet;
 
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 
@@ -19,42 +19,27 @@ public class BinderClassBuilder {
 
     private final String mPackageName;
     private final TypeElement mClassElement;
-    private final Element mIBinderElement;
-
-    private final ExecutableElement mLayoutMethodElement;
-    private final ExecutableElement mExtrasMethodElement;
+    private final HashSet<TypeName> mInterfaceTypeNameSet = new HashSet<>();
 
     private MethodSpec.Builder mLayoutMethodSpec;
     private MethodSpec.Builder mExtrasMethodSpec;
 
-    public BinderClassBuilder(String packageName, TypeElement classElement, Element binderElement) {
+    public BinderClassBuilder(String packageName, TypeElement classElement) {
         mPackageName = packageName;
         mClassElement = classElement;
-        mIBinderElement = binderElement;
-
-        ExecutableElement layoutMethodElement = null;
-        ExecutableElement extrasMethodElement = null;
-        for (Element element : binderElement.getEnclosedElements()) {
-            if (element.getKind() == ElementKind.METHOD) {
-                String elementName = element.getSimpleName().toString();
-                if (elementName.equals("bindLayout")) {
-                    layoutMethodElement = (ExecutableElement) element;
-                } else if (elementName.equals("bindExtras")) {
-                    extrasMethodElement = (ExecutableElement) element;
-                }
-            }
-        }
-
-        mLayoutMethodElement = layoutMethodElement;
-        mExtrasMethodElement = extrasMethodElement;
     }
 
     public void writeLayout(int layoutId) {
         mLayoutMethodSpec = createLayoutMethodSpec(layoutId);
     }
 
+    // void bindLayout(Object target, LayoutBinder binder);
     private MethodSpec.Builder createLayoutMethodSpec(int layoutId) {
-        return MethodSpec.overriding(mLayoutMethodElement)
+        return MethodSpec.methodBuilder("bindLayout")
+                .addAnnotation(Override.class)
+                .returns(void.class)
+                .addParameter(TypeName.OBJECT, "target")
+                .addParameter(TypeName.get(LayoutBinder.class), "binder")
                 .addCode("arg1.bindLayout(arg0, $L);\n", layoutId);
     }
 
@@ -63,12 +48,21 @@ public class BinderClassBuilder {
             mExtrasMethodSpec = createExtrasMethodSpec();
         }
 
-        mExtrasMethodSpec.addCode("target.$L = arg1.getExtra(target, \"$L\");\n", fieldName, extraKey);
+        mExtrasMethodSpec.addCode("obj.$L = provider.getExtra(target, \"$L\");\n", fieldName, extraKey);
     }
 
+    // void bindExtras(Object target, ExtraProvider provider);
     private MethodSpec.Builder createExtrasMethodSpec() {
-        return MethodSpec.overriding(mExtrasMethodElement)
-                .addCode("$T target = ($T) arg0;\n", mClassElement, mClassElement);
+        return MethodSpec.methodBuilder("bindExtras")
+                .addAnnotation(Override.class)
+                .returns(void.class)
+                .addParameter(TypeName.OBJECT, "target")
+                .addParameter(TypeName.get(ExtraProvider.class), "provider")
+                .addCode("$T obj = ($T) target;\n", mClassElement, mClassElement);
+    }
+
+    public void addInterfaceTypeName(TypeName interfaceTypeName) {
+        mInterfaceTypeNameSet.add(interfaceTypeName);
     }
 
     public JavaFile buildJavaFile(String classSuffix) {
@@ -81,7 +75,7 @@ public class BinderClassBuilder {
 
         TypeSpec typeSpec = TypeSpec.classBuilder(mClassElement.getSimpleName() + classSuffix)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addSuperinterface(TypeName.get(mIBinderElement.asType()))
+                .addSuperinterfaces(mInterfaceTypeNameSet)
                 .addMethod(mLayoutMethodSpec.build())
                 .addMethod(mExtrasMethodSpec.build())
                 .build();

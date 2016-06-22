@@ -24,6 +24,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.NoType;
 
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.ElementKind.INTERFACE;
@@ -140,5 +141,24 @@ public class SlimProcessor extends AbstractProcessor {
             type = type.getEnclosingElement();
         }
         return (TypeElement) type;
+    }
+
+    private static boolean isActivity(TypeElement element) {
+        return isClass(element, "android.app.Activity");
+    }
+
+    private static boolean isFragment(TypeElement element) {
+        return isClass(element, "android.support.v4.app.Fragment");
+    }
+
+    private static boolean isClass(TypeElement element, String className) {
+        TypeElement superClassElement = (TypeElement) element.getSuperclass();
+        if (className.equals(superClassElement.getQualifiedName().toString())) {
+            return true;
+        } else if (superClassElement instanceof NoType) {
+            return false;
+        }
+
+        return isClass(superClassElement, className);
     }
 }
