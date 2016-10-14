@@ -5,7 +5,9 @@ import com.google.auto.service.AutoService;
 
 import com.metova.slim.annotation.Extra;
 import com.metova.slim.annotation.Layout;
-import com.metova.slim.binder.SlimBinder;
+import com.metova.slim.binder.ActivityBinder;
+import com.metova.slim.binder.FragmentBinder;
+import com.squareup.javapoet.TypeName;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,7 +26,6 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.NoType;
 
 import static javax.lang.model.element.ElementKind.CLASS;
 import static javax.lang.model.element.ElementKind.INTERFACE;
@@ -36,7 +37,8 @@ public class SlimProcessor extends AbstractProcessor {
     private static final String BINDING_CLASS_SUFFIX = "$$SlimBinder";
 
     private Filer mFiler;
-    private Element mIBinderElement;
+    private TypeName mActivityIBinderElement;
+    private TypeName mFragmentIBinderElement;
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
@@ -55,7 +57,8 @@ public class SlimProcessor extends AbstractProcessor {
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         mFiler = processingEnv.getFiler();
-        mIBinderElement = processingEnv.getElementUtils().getTypeElement(SlimBinder.class.getCanonicalName());
+        mActivityIBinderElement = TypeName.get(processingEnv.getElementUtils().getTypeElement(ActivityBinder.class.getCanonicalName()).asType());
+        mFragmentIBinderElement = TypeName.get(processingEnv.getElementUtils().getTypeElement(FragmentBinder.class.getCanonicalName()).asType());
     }
 
     @Override
@@ -93,7 +96,7 @@ public class SlimProcessor extends AbstractProcessor {
 
             Extra extra = element.getAnnotation(Extra.class);
             String key = extra.value();
-            boolean optional = extra.optional();
+            boolean optional = extra.optional(); // TODO
 
             BinderClassBuilder builder = getOrCreateBinderClassBuilder(builderMap, element);
             builder.writeExtra(element.getSimpleName().toString(), key);
@@ -108,7 +111,15 @@ public class SlimProcessor extends AbstractProcessor {
         if (builderMap.containsKey(typeElement)) {
             builder = builderMap.get(typeElement);
         } else {
-            builder = new BinderClassBuilder(getPackageName(element), typeElement, mIBinderElement);
+            builder = new BinderClassBuilder(getPackageName(element), typeElement);
+            if (isActivity(typeElement)) {
+                builder.addInterfaceTypeName(mActivityIBinderElement);
+            } else if (isFragment(typeElement)) {
+                builder.addInterfaceTypeName(mFragmentIBinderElement);
+            } else {
+                error(typeElement, "%s is not an Activity or Fragment", typeElement.getQualifiedName());
+            }
+
             builderMap.put(typeElement, builder);
         }
 
@@ -127,6 +138,18 @@ public class SlimProcessor extends AbstractProcessor {
         processingEnv.getMessager().printMessage(ERROR, String.format(message, args), element);
     }
 
+    private boolean isActivity(TypeElement element) {
+        return isAssignable(element, "android.app.Activity");
+    }
+
+    private boolean isFragment(TypeElement element) {
+        return isAssignable(element, "android.support.v4.app.Fragment");
+    }
+
+    private boolean isAssignable(TypeElement element, String className) {
+        return processingEnv.getTypeUtils().isAssignable(element.asType(), processingEnv.getElementUtils().getTypeElement(className).asType());
+    }
+
     private static Set<String> arrayToSet(String[] array) {
         assert array != null;
 
@@ -141,24 +164,5 @@ public class SlimProcessor extends AbstractProcessor {
             type = type.getEnclosingElement();
         }
         return (TypeElement) type;
-    }
-
-    private static boolean isActivity(TypeElement element) {
-        return isClass(element, "android.app.Activity");
-    }
-
-    private static boolean isFragment(TypeElement element) {
-        return isClass(element, "android.support.v4.app.Fragment");
-    }
-
-    private static boolean isClass(TypeElement element, String className) {
-        TypeElement superClassElement = (TypeElement) element.getSuperclass();
-        if (className.equals(superClassElement.getQualifiedName().toString())) {
-            return true;
-        } else if (superClassElement instanceof NoType) {
-            return false;
-        }
-
-        return isClass(superClassElement, className);
     }
 }

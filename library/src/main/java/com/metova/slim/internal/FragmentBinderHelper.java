@@ -10,12 +10,12 @@ public class FragmentBinderHelper implements LayoutBinder, ExtraProvider {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getExtra(Object source, String key) {
-        Fragment fragment = (Fragment) source;
-        return (T) ((Fragment) source).getArguments().get(key);
+        final Fragment fragment = (Fragment) source;
+        return (T) (fragment).getArguments().get(key);
     }
 
     @Override
     public void bindLayout(Object target, int layoutId) {
-
+        // TODO
     }
 }

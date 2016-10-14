@@ -9,7 +9,9 @@ public class ActivityBinderHelper implements LayoutBinder, ExtraProvider {
 
     @Override
     public void bindLayout(Object target, int layoutId) {
-        ((Activity) target).setContentView(layoutId);
+        if(layoutId > 0) {
+            ((Activity) target).setContentView(layoutId);
+        }
     }
 
     @SuppressWarnings("unchecked")

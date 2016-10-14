@@ -1,6 +1,6 @@
 package com.metova.slim;
 
-import com.metova.slim.binder.SlimBinder;
+import com.metova.slim.binder.ActivityBinder;
 import com.metova.slim.internal.ActivityBinderHelper;
 
 import android.app.Activity;
@@ -12,18 +12,18 @@ import java.util.Map;
 
 public class Slim {
 
-    private static Map<Class<?>, SlimBinder> sBinderMap = new HashMap<>();
+    private static Map<Class<?>, ActivityBinder> sBinderMap = new HashMap<>();
     private static ActivityBinderHelper sActivityBinderHelper = new ActivityBinderHelper();
 
     public static void bindLayout(@NonNull Activity target) {
-        SlimBinder binder = getBinder(target);
+        ActivityBinder binder = getBinder(target);
         if (binder != null) {
             binder.bindLayout(target, sActivityBinderHelper);
         }
     }
 
     public static void bindExtras(@NonNull Activity target) {
-        SlimBinder binder = getBinder(target);
+        ActivityBinder binder = getBinder(target);
         if (binder != null) {
             binder.bindExtras(target, sActivityBinderHelper);
         }
@@ -39,7 +39,7 @@ public class Slim {
     }
 
     @Nullable
-    private static SlimBinder getBinder(@NonNull Object target) {
+    private static ActivityBinder getBinder(@NonNull Object target) {
         Class<?> targetClass = target.getClass();
         if (sBinderMap.containsKey(targetClass)) {
             return sBinderMap.get(targetClass);
@@ -51,7 +51,7 @@ public class Slim {
         }
 
         try {
-            SlimBinder binder = (SlimBinder) binderClass.newInstance();
+            ActivityBinder binder = (ActivityBinder) binderClass.newInstance();
             sBinderMap.put(targetClass, binder);
             return binder;
         } catch (InstantiationException e) {
