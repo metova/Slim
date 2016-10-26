@@ -1,9 +1,8 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.neenbedankt.android-apt'
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion "24.0.0"
+    compileSdkVersion 25
+    buildToolsVersion "24.0.1"
 
     defaultConfig {
         applicationId "com.metova.slim.sample"
@@ -22,6 +21,6 @@ android {
 
 dependencies {
     compile project(":library")
-    compile 'com.android.support:appcompat-v7:24.0.0'
-    apt project(":library-compiler")
+    compile 'com.android.support:appcompat-v7:25.0.0'
+    annotationProcessor project(":library-compiler")
 }
