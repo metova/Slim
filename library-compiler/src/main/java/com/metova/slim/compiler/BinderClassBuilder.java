@@ -17,6 +17,8 @@ class BinderClassBuilder {
 
     private static final int NO_LAYOUT_ID = -1;
 
+    private final Target mTarget;
+
     private final String mPackageName;
     private final TypeElement mClassElement;
     private final HashSet<TypeName> mInterfaceTypeNameSet = new HashSet<>();
@@ -24,13 +26,21 @@ class BinderClassBuilder {
     private MethodSpec.Builder mLayoutMethodSpec;
     private MethodSpec.Builder mExtrasMethodSpec;
 
-    BinderClassBuilder(String packageName, TypeElement classElement) {
+    BinderClassBuilder(Target target, String packageName, TypeElement classElement) {
+        mTarget = target;
         mPackageName = packageName;
         mClassElement = classElement;
     }
 
     void writeLayout(int layoutId) {
-        mLayoutMethodSpec = createLayoutMethodSpec(layoutId);
+        switch (mTarget) {
+            case ACTIVITY:
+                mLayoutMethodSpec = createActivityLayoutMethodSpec(layoutId);
+                break;
+            case FRAGMENT:
+                mLayoutMethodSpec = createFragmentLayoutMethodSpec(layoutId);
+                break;
+        }
     }
 
     void writeExtra(String fieldName, String extraKey) {
@@ -42,7 +52,7 @@ class BinderClassBuilder {
     }
 
     // void bindLayout(Object target, LayoutBinder binder);
-    private MethodSpec.Builder createLayoutMethodSpec(int layoutId) {
+    private MethodSpec.Builder createActivityLayoutMethodSpec(int layoutId) {
         final String target = "target";
         final String binder = "binder";
 
@@ -53,6 +63,15 @@ class BinderClassBuilder {
                 .addParameter(TypeName.OBJECT, target)
                 .addParameter(TypeName.get(LayoutBinder.class), binder)
                 .addCode("$L.bindLayout($L, $L);\n", binder, target, layoutId);
+    }
+
+    // int getLayoutId();
+    private MethodSpec.Builder createFragmentLayoutMethodSpec(int layoutId) {
+        return MethodSpec.methodBuilder("getLayoutId")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(int.class)
+                .addCode("return $L;\n", layoutId);
     }
 
     // void bindExtras(Object target, ExtraProvider provider);
@@ -75,8 +94,16 @@ class BinderClassBuilder {
 
     JavaFile buildJavaFile(String classSuffix) {
         if (mLayoutMethodSpec == null) {
-            mLayoutMethodSpec = createLayoutMethodSpec(NO_LAYOUT_ID);
+            switch (mTarget) {
+                case ACTIVITY:
+                    mLayoutMethodSpec = createActivityLayoutMethodSpec(NO_LAYOUT_ID);
+                    break;
+                case FRAGMENT:
+                    mLayoutMethodSpec = createFragmentLayoutMethodSpec(NO_LAYOUT_ID);
+                    break;
+            }
         }
+
         if (mExtrasMethodSpec == null) {
             mExtrasMethodSpec = createExtrasMethodSpec();
         }

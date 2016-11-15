@@ -111,15 +111,21 @@ public class SlimProcessor extends AbstractProcessor {
         if (builderMap.containsKey(typeElement)) {
             builder = builderMap.get(typeElement);
         } else {
-            builder = new BinderClassBuilder(getPackageName(element), typeElement);
+            final Target target;
+            final TypeName interfaceTypeName;
             if (isActivity(typeElement)) {
-                builder.addInterfaceTypeName(mActivityIBinderElement);
+                target = Target.ACTIVITY;
+                interfaceTypeName = mActivityIBinderElement;
             } else if (isFragment(typeElement)) {
-                builder.addInterfaceTypeName(mFragmentIBinderElement);
+                target = Target.FRAGMENT;
+                interfaceTypeName = mFragmentIBinderElement;
             } else {
                 error(typeElement, "%s is not an Activity or Fragment", typeElement.getQualifiedName());
+                return null;
             }
 
+            builder = new BinderClassBuilder(target, getPackageName(element), typeElement);
+            builder.addInterfaceTypeName(interfaceTypeName);
             builderMap.put(typeElement, builder);
         }
 

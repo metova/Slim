@@ -1,11 +1,21 @@
 package com.metova.slim.internal;
 
-import com.metova.slim.binder.LayoutBinder;
 import com.metova.slim.provider.ExtraProvider;
 
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 
-public class FragmentBinderHelper implements LayoutBinder, ExtraProvider {
+public class FragmentBinderHelper implements ExtraProvider {
+
+    public static FragmentBinderHelper create() {
+        return new FragmentBinderHelper();
+    }
+
+    private FragmentBinderHelper() {
+    }
 
     @SuppressWarnings("unchecked")
     @Override
@@ -14,8 +24,7 @@ public class FragmentBinderHelper implements LayoutBinder, ExtraProvider {
         return (T) (fragment).getArguments().get(key);
     }
 
-    @Override
-    public void bindLayout(Object target, int layoutId) {
-        // TODO
+    public View createLayout(LayoutInflater inflater, @Nullable ViewGroup container, int layoutId) {
+        return inflater.inflate(layoutId, container, false);
     }
 }

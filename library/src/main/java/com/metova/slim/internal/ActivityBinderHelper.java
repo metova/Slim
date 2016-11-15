@@ -7,9 +7,16 @@ import android.app.Activity;
 
 public class ActivityBinderHelper implements LayoutBinder, ExtraProvider {
 
+    public static ActivityBinderHelper create() {
+        return new ActivityBinderHelper();
+    }
+
+    private ActivityBinderHelper() {
+    }
+
     @Override
     public void bindLayout(Object target, int layoutId) {
-        if(layoutId > 0) {
+        if (layoutId > 0) {
             ((Activity) target).setContentView(layoutId);
         }
     }
