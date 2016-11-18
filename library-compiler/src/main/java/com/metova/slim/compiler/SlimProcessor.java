@@ -3,6 +3,7 @@ package com.metova.slim.compiler;
 import com.google.auto.common.SuperficialValidation;
 import com.google.auto.service.AutoService;
 
+import com.metova.slim.annotation.Callback;
 import com.metova.slim.annotation.Extra;
 import com.metova.slim.annotation.Layout;
 import com.metova.slim.binder.ActivityBinder;
@@ -86,7 +87,7 @@ public class SlimProcessor extends AbstractProcessor {
             int id = annotation.value();
 
             BinderClassBuilder builder = getOrCreateBinderClassBuilder(builderMap, element);
-            builder.writeLayout(id);
+            builder.setLayout(id);
         }
 
         for (Element element : env.getElementsAnnotatedWith(Extra.class)) {
@@ -99,7 +100,16 @@ public class SlimProcessor extends AbstractProcessor {
             boolean optional = extra.optional(); // TODO
 
             BinderClassBuilder builder = getOrCreateBinderClassBuilder(builderMap, element);
-            builder.writeExtra(element.getSimpleName().toString(), key);
+            builder.addExtra(element.getSimpleName().toString(), key);
+        }
+
+        for (Element element : env.getElementsAnnotatedWith(Callback.class)) {
+            if (!SuperficialValidation.validateElement(element)) {
+                continue;
+            }
+
+            BinderClassBuilder builder = getOrCreateBinderClassBuilder(builderMap, element);
+            builder.addCallback(element.getSimpleName().toString(), element.asType().toString());
         }
 
         return new ArrayList<>(builderMap.values());

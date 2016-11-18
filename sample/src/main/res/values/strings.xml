@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Slim Sample</string>
+    <string name="show_toast">Show Toast</string>
 </resources>

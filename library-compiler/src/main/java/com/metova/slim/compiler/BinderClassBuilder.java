@@ -1,6 +1,7 @@
 package com.metova.slim.compiler;
 
 import com.metova.slim.binder.LayoutBinder;
+import com.metova.slim.provider.CallbackProvider;
 import com.metova.slim.provider.ExtraProvider;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
@@ -8,7 +9,9 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -21,10 +24,11 @@ class BinderClassBuilder {
 
     private final String mPackageName;
     private final TypeElement mClassElement;
-    private final HashSet<TypeName> mInterfaceTypeNameSet = new HashSet<>();
 
-    private MethodSpec.Builder mLayoutMethodSpec;
-    private MethodSpec.Builder mExtrasMethodSpec;
+    private HashSet<TypeName> mInterfaceTypeNameSet = new HashSet<>();
+    private int mLayoutId = NO_LAYOUT_ID;
+    private Map<String, String> mExtraMap = new HashMap<>();
+    private Map<String, String> mCallbackMap = new HashMap<>();
 
     BinderClassBuilder(Target target, String packageName, TypeElement classElement) {
         mTarget = target;
@@ -32,27 +36,24 @@ class BinderClassBuilder {
         mClassElement = classElement;
     }
 
-    void writeLayout(int layoutId) {
-        switch (mTarget) {
-            case ACTIVITY:
-                mLayoutMethodSpec = createActivityLayoutMethodSpec(layoutId);
-                break;
-            case FRAGMENT:
-                mLayoutMethodSpec = createFragmentLayoutMethodSpec(layoutId);
-                break;
-        }
+    void addInterfaceTypeName(TypeName interfaceTypeName) {
+        mInterfaceTypeNameSet.add(interfaceTypeName);
     }
 
-    void writeExtra(String fieldName, String extraKey) {
-        if (mExtrasMethodSpec == null) {
-            mExtrasMethodSpec = createExtrasMethodSpec();
-        }
+    void setLayout(int layoutId) {
+        mLayoutId = layoutId;
+    }
 
-        mExtrasMethodSpec.addCode("obj.$L = provider.getExtra(target, \"$L\");\n", fieldName, extraKey);
+    void addExtra(String fieldName, String extraKey) {
+        mExtraMap.put(fieldName, extraKey);
+    }
+
+    void addCallback(String fieldName, String fieldClassName) {
+        mCallbackMap.put(fieldName, fieldClassName);
     }
 
     // void bindLayout(Object target, LayoutBinder binder);
-    private MethodSpec.Builder createActivityLayoutMethodSpec(int layoutId) {
+    private MethodSpec createActivityLayoutMethodSpec(int layoutId) {
         final String target = "target";
         final String binder = "binder";
 
@@ -62,60 +63,84 @@ class BinderClassBuilder {
                 .returns(void.class)
                 .addParameter(TypeName.OBJECT, target)
                 .addParameter(TypeName.get(LayoutBinder.class), binder)
-                .addCode("$L.bindLayout($L, $L);\n", binder, target, layoutId);
+                .addCode("$L.bindLayout($L, $L);\n", binder, target, layoutId)
+                .build();
     }
 
     // int getLayoutId();
-    private MethodSpec.Builder createFragmentLayoutMethodSpec(int layoutId) {
+    private MethodSpec createFragmentLayoutMethodSpec(int layoutId) {
         return MethodSpec.methodBuilder("getLayoutId")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(int.class)
-                .addCode("return $L;\n", layoutId);
+                .addCode("return $L;\n", layoutId)
+                .build();
     }
 
     // void bindExtras(Object target, ExtraProvider provider);
-    private MethodSpec.Builder createExtrasMethodSpec() {
+    private MethodSpec createExtrasMethodSpec() {
         final String target = "target";
         final String provider = "provider";
 
-        return MethodSpec.methodBuilder("bindExtras")
+        final MethodSpec.Builder builder = MethodSpec.methodBuilder("bindExtras")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(void.class)
                 .addParameter(TypeName.OBJECT, target)
                 .addParameter(TypeName.get(ExtraProvider.class), provider)
-                .addCode("$T obj = ($T) target;\n", mClassElement, mClassElement);
+                .addCode("final $T obj = ($T) target;\n", mClassElement, mClassElement);
+
+        for (Map.Entry<String, String> entry : mExtraMap.entrySet()) {
+            builder.addCode("obj.$L = provider.getExtra(target, \"$L\");\n", entry.getKey(), entry.getValue());
+        }
+
+        return builder.build();
     }
 
-    void addInterfaceTypeName(TypeName interfaceTypeName) {
-        mInterfaceTypeNameSet.add(interfaceTypeName);
+    // void bindCallbacks(Object target);
+    private MethodSpec createCallbacksMethodSpec() {
+        final String target = "target";
+        final String provider = "provider";
+
+        final MethodSpec.Builder builder = MethodSpec.methodBuilder("bindCallbacks")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(void.class)
+                .addParameter(TypeName.OBJECT, target)
+                .addParameter(TypeName.get(CallbackProvider.class), provider)
+                .addCode("final $T obj = ($T) target;\n", mClassElement, mClassElement);
+
+        for (Map.Entry<String, String> entry : mCallbackMap.entrySet()) {
+            builder.addCode("obj.$L = provider.getCallback(target, $L.class);", entry.getKey(), entry.getValue());
+        }
+
+        return builder.build();
     }
 
     JavaFile buildJavaFile(String classSuffix) {
-        if (mLayoutMethodSpec == null) {
-            switch (mTarget) {
-                case ACTIVITY:
-                    mLayoutMethodSpec = createActivityLayoutMethodSpec(NO_LAYOUT_ID);
-                    break;
-                case FRAGMENT:
-                    mLayoutMethodSpec = createFragmentLayoutMethodSpec(NO_LAYOUT_ID);
-                    break;
-            }
+        final MethodSpec layoutMethodSpec;
+        switch (mTarget) {
+            case ACTIVITY:
+                layoutMethodSpec = createActivityLayoutMethodSpec(mLayoutId);
+                break;
+            case FRAGMENT:
+                layoutMethodSpec = createFragmentLayoutMethodSpec(mLayoutId);
+                break;
+            default:
+                throw new RuntimeException("Unhandled target: " + mTarget.name());
         }
 
-        if (mExtrasMethodSpec == null) {
-            mExtrasMethodSpec = createExtrasMethodSpec();
-        }
-
-        TypeSpec typeSpec = TypeSpec.classBuilder(mClassElement.getSimpleName() + classSuffix)
+        final TypeSpec.Builder typeSpecBuilder = TypeSpec.classBuilder(mClassElement.getSimpleName() + classSuffix)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addSuperinterfaces(mInterfaceTypeNameSet)
-                .addMethod(mLayoutMethodSpec.build())
-                .addMethod(mExtrasMethodSpec.build())
-                .build();
+                .addMethod(layoutMethodSpec)
+                .addMethod(createExtrasMethodSpec());
 
-        return JavaFile.builder(mPackageName, typeSpec)
+        if (mTarget == Target.FRAGMENT) {
+            typeSpecBuilder.addMethod(createCallbacksMethodSpec());
+        }
+
+        return JavaFile.builder(mPackageName, typeSpecBuilder.build())
                 .addFileComment("Generated by Slim. Do not modify!\n")
                 .addFileComment(new Date(System.currentTimeMillis()).toString())
                 .build();

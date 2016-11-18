@@ -51,6 +51,13 @@ public class Slim {
         bindExtras(target, binder, sFragmentBinderHelper);
     }
 
+    public static void bindCallbacks(@NonNull Fragment target) {
+        FragmentBinder binder = (FragmentBinder) getBinder(target);
+        if(binder != null) {
+            binder.bindCallbacks(target, sFragmentBinderHelper);
+        }
+    }
+
     private static void bindExtras(@NonNull Object target, @Nullable SlimBinder binder, @NonNull ExtraProvider provider) {
         if (binder != null) {
             binder.bindExtras(target, provider);

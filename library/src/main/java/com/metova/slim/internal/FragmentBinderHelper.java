@@ -1,5 +1,6 @@
 package com.metova.slim.internal;
 
+import com.metova.slim.provider.CallbackProvider;
 import com.metova.slim.provider.ExtraProvider;
 
 import android.support.annotation.Nullable;
@@ -8,7 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-public class FragmentBinderHelper implements ExtraProvider {
+public class FragmentBinderHelper implements ExtraProvider, CallbackProvider {
 
     public static FragmentBinderHelper create() {
         return new FragmentBinderHelper();
@@ -22,6 +23,21 @@ public class FragmentBinderHelper implements ExtraProvider {
     public <T> T getExtra(Object source, String key) {
         final Fragment fragment = (Fragment) source;
         return (T) (fragment).getArguments().get(key);
+    }
+
+    @Override
+    public <T> T getCallback(Object source, Class<T> clz) {
+        final Fragment fragment = (Fragment) source;
+        if (fragment.getActivity() == null) {
+            throw new IllegalStateException(String.format("%s is not attached to an Activity", fragment.getClass().getSimpleName()));
+        }
+
+        try {
+            return clz.cast(fragment.getActivity());
+        } catch (ClassCastException e) {
+            throw new RuntimeException(
+                    String.format("Unable to cast %1$s to %2$s. Does %1$s implement the correct interface?", fragment.getActivity().getClass().getSimpleName(), clz.getSimpleName()));
+        }
     }
 
     public View createLayout(LayoutInflater inflater, @Nullable ViewGroup container, int layoutId) {
