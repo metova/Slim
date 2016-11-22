@@ -30,3 +30,6 @@ Thumbs.db
 .idea
 build/
 *.iml
+
+# Javadocs
+javadoc/
