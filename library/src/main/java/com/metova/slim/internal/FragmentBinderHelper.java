@@ -20,9 +20,14 @@ public class FragmentBinderHelper implements ExtraProvider, CallbackProvider {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getExtra(Object source, String key) {
+    public <T> T getExtra(Object source, String key, boolean optional) {
         final Fragment fragment = (Fragment) source;
-        return (T) (fragment).getArguments().get(key);
+        T value = (T) (fragment).getArguments().get(key);
+        if (value == null && !optional) {
+            throw new NullPointerException(String.format("Extra with key '%s' is null and is required.", key));
+        }
+
+        return value;
     }
 
     @Override

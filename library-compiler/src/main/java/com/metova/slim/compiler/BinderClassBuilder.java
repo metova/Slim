@@ -27,7 +27,7 @@ class BinderClassBuilder {
 
     private HashSet<TypeName> mInterfaceTypeNameSet = new HashSet<>();
     private int mLayoutId = NO_LAYOUT_ID;
-    private Map<String, String> mExtraMap = new HashMap<>();
+    private Map<String, ExtraParameters> mExtraMap = new HashMap<>();
     private Map<String, String> mCallbackMap = new HashMap<>();
 
     BinderClassBuilder(Target target, String packageName, TypeElement classElement) {
@@ -44,8 +44,8 @@ class BinderClassBuilder {
         mLayoutId = layoutId;
     }
 
-    void addExtra(String fieldName, String extraKey) {
-        mExtraMap.put(fieldName, extraKey);
+    void addExtra(String fieldName, String extraKey, boolean optional) {
+        mExtraMap.put(fieldName, new ExtraParameters(extraKey, optional));
     }
 
     void addCallback(String fieldName, String fieldClassName) {
@@ -90,8 +90,8 @@ class BinderClassBuilder {
                 .addParameter(TypeName.get(ExtraProvider.class), provider)
                 .addCode("final $T obj = ($T) target;\n", mClassElement, mClassElement);
 
-        for (Map.Entry<String, String> entry : mExtraMap.entrySet()) {
-            builder.addCode("obj.$L = provider.getExtra(target, \"$L\");\n", entry.getKey(), entry.getValue());
+        for (Map.Entry<String, ExtraParameters> entry : mExtraMap.entrySet()) {
+            builder.addCode("obj.$L = provider.getExtra(target, \"$L\", $L);\n", entry.getKey(), entry.getValue().getKey(), entry.getValue().isOptional());
         }
 
         return builder.build();

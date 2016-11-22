@@ -45,7 +45,8 @@ public class SlimProcessor extends AbstractProcessor {
     public Set<String> getSupportedAnnotationTypes() {
         return arrayToSet(new String[]{
                 Extra.class.getCanonicalName(),
-                Layout.class.getCanonicalName()
+                Layout.class.getCanonicalName(),
+                Callback.class.getCanonicalName()
         });
     }
 
@@ -97,10 +98,10 @@ public class SlimProcessor extends AbstractProcessor {
 
             Extra extra = element.getAnnotation(Extra.class);
             String key = extra.value();
-            boolean optional = extra.optional(); // TODO
+            boolean optional = extra.optional();
 
             BinderClassBuilder builder = getOrCreateBinderClassBuilder(builderMap, element);
-            builder.addExtra(element.getSimpleName().toString(), key);
+            builder.addExtra(element.getSimpleName().toString(), key, optional);
         }
 
         for (Element element : env.getElementsAnnotatedWith(Callback.class)) {

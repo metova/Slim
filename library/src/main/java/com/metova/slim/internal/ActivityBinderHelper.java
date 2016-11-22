@@ -23,8 +23,13 @@ public class ActivityBinderHelper implements LayoutBinder, ExtraProvider {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getExtra(Object source, String key) {
+    public <T> T getExtra(Object source, String key, boolean optional) {
         Activity activity = (Activity) source;
-        return (T) activity.getIntent().getExtras().get(key);
+        T value = (T) activity.getIntent().getExtras().get(key);
+        if (value == null && !optional) {
+            throw new NullPointerException(String.format("Extra with key '%s' is null and is required.", key));
+        }
+
+        return value;
     }
 }
