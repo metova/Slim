@@ -4,6 +4,7 @@ group = GROUP
 version = VERSION_NAME
 
 afterEvaluate { project ->
+    project.archivesBaseName = POM_ARTIFACT_ID
     if (project.getPlugins().hasPlugin('com.android.application') || project.getPlugins().hasPlugin('com.android.library')) {
         install {
             repositories.mavenInstaller {
