@@ -16,7 +16,7 @@ android {
 }
 
 dependencies {
-    compile project(':library-annotation')
+    compile project(':library-common')
     compile 'com.android.support:appcompat-v7:25.0.1'
     testCompile 'junit:junit:4.12'
 }
