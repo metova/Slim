@@ -1,0 +1,113 @@
+apply plugin: 'com.github.dcendents.android-maven'
+
+group = GROUP
+version = VERSION_NAME
+
+afterEvaluate { project ->
+    if (project.getPlugins().hasPlugin('com.android.application') || project.getPlugins().hasPlugin('com.android.library')) {
+        install {
+            repositories.mavenInstaller {
+                pom.groupId = GROUP
+                pom.artifactId = POM_ARTIFACT_ID
+                pom.version = VERSION_NAME
+
+                pom.project {
+                    packaging POM_PACKAGING
+
+                    name POM_NAME
+                    url POM_URL
+
+                    licenses {
+                        license {
+                            name POM_LICENSE_NAME
+                            url POM_LICENSE_URL
+                            distribution POM_LICENSE_DIST
+                        }
+                    }
+                    developers {
+                        developer {
+                            id POM_DEVELOPER_ID
+                            name POM_DEVELOPER_NAME
+                            email POM_DEVELOPER_EMAIL
+                        }
+                    }
+                    scm {
+                        connection POM_SCM_CONNECTION
+                        developerConnection POM_SCM_DEV_CONNECTION
+                        url POM_SCM_URL
+                    }
+                }
+            }
+        }
+
+        task androidSourcesJar(type: Jar) {
+            from android.sourceSets.main.java.source
+            classifier = 'sources'
+        }
+
+        task androidJavadoc(type: Javadoc) {
+            source = android.sourceSets.main.java.source
+            classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+        }
+
+        task androidJavadocJar(type: Jar, dependsOn: androidJavadoc) {
+            classifier = 'javadoc'
+            from androidJavadoc.destinationDir
+        }
+    } else {
+        install {
+            repositories.mavenInstaller {
+                pom.groupId = GROUP
+                pom.artifactId = POM_ARTIFACT_ID
+                pom.version = VERSION_NAME
+
+                pom.project {
+                    packaging POM_PACKAGING
+
+                    name POM_NAME
+                    url POM_URL
+
+                    licenses {
+                        license {
+                            name POM_LICENSE_NAME
+                            url POM_LICENSE_URL
+                            distribution POM_LICENSE_DIST
+                        }
+                    }
+                    developers {
+                        developer {
+                            id POM_DEVELOPER_ID
+                            name POM_DEVELOPER_NAME
+                            email POM_DEVELOPER_EMAIL
+                        }
+                    }
+                    scm {
+                        connection POM_SCM_CONNECTION
+                        developerConnection POM_SCM_DEV_CONNECTION
+                        url POM_SCM_URL
+                    }
+                }
+            }
+        }
+
+        task sourcesJar(type: Jar) {
+            from sourceSets.main.allSource
+            classifier = 'sources'
+        }
+
+        task javadocJar(type: Jar, dependsOn: javadoc) {
+            classifier = 'javadoc'
+            from javadoc.destinationDir
+        }
+    }
+
+    artifacts {
+        if (project.getPlugins().hasPlugin('com.android.application') || project.getPlugins().hasPlugin('com.android.library')) {
+            archives androidSourcesJar
+            archives androidJavadocJar
+        } else {
+            archives sourcesJar
+            archives javadocJar
+        }
+    }
+}
