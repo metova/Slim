@@ -27,8 +27,8 @@ To include Slim into your project, add it to your `build.gradle` dependencies.
 
 ```
 dependencies {
-    compile 'com.metova:slim:2.0.0-beta.1'
-    annotationProcessor 'com.metova:slim-compiler:2.0.0-beta.1'
+    compile 'com.metova:slim:2.0.0-beta.2'
+    annotationProcessor 'com.metova:slim-compiler:2.0.0-beta.2'
 }
 ```
 
